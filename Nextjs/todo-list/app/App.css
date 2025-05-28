@@ -1,0 +1,54 @@
+.form-check-input:checked {
+  background-color: #121412;
+  border-color: #929392;
+}
+
+.form-check-input:focus {
+  outline: 2px solid #929392; 
+  outline-offset: 2px #000000;
+  box-shadow: none;
+}
+
+.hover-effect:hover {
+  background-color: #f8f9fa; 
+  transform: translateY(-1px); 
+  transition: all 0.2s ease; 
+ 
+}
+
+.form-check-input {
+  cursor: pointer;
+}
+
+.task-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.task-item:focus-within {
+  outline: 2px solid #0d6efd;
+}
+
+.list-group-item {
+  border-top: 2px solid rgba(0, 0, 0, 0.125) !important;
+}
+
+html, body, #root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.btn-add-task {
+  background-color: #000;
+  color: #fff;
+}
+
+.btn-add-task:hover, .btn-add-task:focus {
+  background-color: #222;
+  color: #fff;
+}
+
+.d-flex.justify-content-center.mb-3 {
+  /* Mantém centralizado e com espaçamento */
+}
