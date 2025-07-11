@@ -11,7 +11,7 @@ const Header = ({ onClear }) => {
           <span className="fw-bold fs-5">To do List</span>
 
           <div className="d-flex align-items-center">
-            <button className="btn btn-light me-2" onClick={onClear}>Limpar</button>
+            <button className="btn btn-secondary me-2" onClick={onClear}>Limpar</button>
           </div>
         </div>
       </nav>

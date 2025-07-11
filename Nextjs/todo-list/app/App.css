@@ -40,15 +40,14 @@ html, body, #root {
 }
 
 .btn-add-task {
-  background-color: #000;
-  color: #fff;
+  background-color: #000 !important;
+  color: #fff !important;
+  border-color: #000 !important;
 }
 
 .btn-add-task:hover, .btn-add-task:focus {
-  background-color: #222;
-  color: #fff;
+  background-color: #222 !important;
+  color: #fff !important;
+  border-color: #222 !important;
 }
 
-.d-flex.justify-content-center.mb-3 {
-  /* Mantém centralizado e com espaçamento */
-}
