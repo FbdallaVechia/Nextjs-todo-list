@@ -2,17 +2,30 @@
 
 import React, { useState } from 'react';
 
-const ModalForm = ({ show, onClose, addTask }) => {
-  const [text, setText] = useState('');
-  const [category, setCategory] = useState('Lazer');
+const ModalForm = ({ show, onClose, addTask, updateTask, mode = 'add', initialText = '', initialCategory = 'Lazer', initialDescription = '', editingId = null }) => {
+  const [text, setText] = useState(initialText);
+  const [category, setCategory] = useState(initialCategory);
+  const [description, setDescription] = useState(initialDescription); // Novo estado para a descrição
+
+
+  // sincroniza quando abrir para editar ou limpar ao fechar
+  React.useEffect(() => {
+    if (show) {
+      setText(initialText);
+      setCategory(initialCategory);
+      setDescription(initialDescription);
+
+    }
+  }, [show, initialText, initialCategory, initialDescription]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (text.trim()) {
-      addTask(text, category);
-      setText('');
-      setCategory('Lazer');
-      onClose();
+    if (!text.trim()) return;
+
+    if (mode === 'edit' && editingId) {
+      updateTask(editingId, text, category, description);
+    } else {
+      addTask(text, category, description);
     }
   };
 
@@ -21,7 +34,7 @@ const ModalForm = ({ show, onClose, addTask }) => {
       <div className='modal-dialog'>
         <div className='modal-content'>
           <div className='modal-header'>
-            <h5 className='modal-title'>Adicionar nova tarefa</h5>
+            <h5 className='modal-title'>{mode === 'edit' ? 'Editar tarefa' : 'Adicionar nova tarefa'}</h5>
             <button type='button' className='btn-close' onClick={onClose}></button>
           </div>
           <form onSubmit={handleSubmit}>
@@ -33,6 +46,14 @@ const ModalForm = ({ show, onClose, addTask }) => {
                 onChange={(e) => setText(e.target.value)}
                 className='form-control mb-2'
                 required
+              />
+
+              <input // Novo campo para a descrição
+                type="text"
+                placeholder='Adicionar descrição (opcional)'
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className='form-control mb-2'
               />
 
               <select
@@ -50,7 +71,7 @@ const ModalForm = ({ show, onClose, addTask }) => {
                 Cancelar
               </button>
               <button type='submit' className='btn btn-add-task'>
-                Adicionar Tarefa
+                {mode === 'edit' ? 'Salvar alterações' : 'Adicionar Tarefa'}
               </button>
             </div>
           </form>

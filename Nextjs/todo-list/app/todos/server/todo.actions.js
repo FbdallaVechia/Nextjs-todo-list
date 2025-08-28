@@ -49,12 +49,13 @@ export async function getTodos() {
 /**
  * Adiciona uma nova tarefa ao banco de dados Supabase.
  * Recebe um FormData, o formato comum para dados de formulários com Server Actions.
- * @param {FormData} formData - Os dados do formulário contendo 'text' e 'category'.
+ * @param {FormData} formData - Os dados do formulário contendo 'text' e 'category' e 'description'.
  * @returns {Promise<Object>} Uma promessa que resolve para o objeto da nova tarefa inserida.
  */
 export async function addTodo(formData) {
   const text = formData.get('text'); //Quando você chama uma Server Action a partir de um formulário HTML padrão o Next.js automaticamente coleta os dados do formulário em um objeto FormData e o passa para a Server Action
   const category = formData.get('category') || 'Lazer'; //define 'Lazer' como padrão se não for fornecido
+  const description = formData.get('description') || '';
 
   // Validação básica
   if (!text || typeof text !== 'string' || text.trim().length === 0) {
@@ -66,7 +67,12 @@ export async function addTodo(formData) {
   const { data, error } = await supabase
     .from('todos')
     .insert([
-      { text: text.trim(), category: category.trim(), completed: false }
+      { 
+        text: text.trim(), 
+        category: category.trim(),
+        description: description.trim(), 
+        completed: false 
+      }
     ])
     .select(); // '.select()' é importante para obter os dados da linha inserida (incluindo o ID gerado pelo DB)
 
@@ -136,6 +142,53 @@ export async function deleteTodo(id) {
 
   console.log(`Server Action: Tarefa com ID ${id} deletada do Supabase.`);
   return true; // Retorna true para indicar que a operação foi bem-sucedida
+}
+
+/**
+ * Atualiza os campos 'text' e 'category' de uma tarefa específica no Supabase.
+ * @param {FormData} formData - Deve conter 'id', 'text' 'category' e 'description'..
+ * @returns {Promise<Object>} Uma promessa que resolve para a tarefa atualizada.
+ */
+export async function updateTodo(formData) {
+  const id = formData.get('id');
+  const text = formData.get('text');
+  const category = formData.get('category');
+  const description = formData.get('description');
+
+  if (!id || typeof id !== 'string') {
+    throw new Error('ID da tarefa inválido.');
+  }
+
+  if (!text || typeof text !== 'string' || text.trim().length === 0) {
+    throw new Error('O texto da tarefa não pode estar vazio.');
+  }
+
+  const updates = { 
+    text: text.trim(),
+    description: description.trim() // Adiciona a descrição à atualização
+   };
+
+  if (typeof category === 'string' && category.trim().length > 0) {
+    updates.category = category.trim();
+  }
+
+  const { data, error } = await supabase
+    .from('todos')
+    .update(updates)
+    .eq('id', id)
+    .select();
+
+  if (error) {
+    console.error('Erro ao atualizar tarefa no Supabase:', error);
+    throw new Error('Falha ao atualizar tarefa. Por favor, tente novamente.');
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error('Tarefa não encontrada para atualização.');
+  }
+
+  console.log('Server Action: Tarefa atualizada no Supabase:', data[0]);
+  return data[0];
 }
 
 /**
