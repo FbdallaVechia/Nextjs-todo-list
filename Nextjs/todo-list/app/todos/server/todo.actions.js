@@ -53,6 +53,7 @@ export async function getTodos() {
  * @returns {Promise<Object>} Uma promessa que resolve para o objeto da nova tarefa inserida.
  */
 export async function addTodo(formData) {
+  console.log('Dados recebidos:', formData.get('text'));
   const text = formData.get('text'); //Quando você chama uma Server Action a partir de um formulário HTML padrão o Next.js automaticamente coleta os dados do formulário em um objeto FormData e o passa para a Server Action
   const category = formData.get('category') || 'Lazer'; //define 'Lazer' como padrão se não for fornecido
   const description = formData.get('description') || '';
