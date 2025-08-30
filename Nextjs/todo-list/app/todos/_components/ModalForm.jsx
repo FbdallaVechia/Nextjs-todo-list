@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 
-const ModalForm = ({ show, onClose, addTask, updateTask, mode = 'add', initialText = '', initialCategory = 'Lazer', initialDescription = '', editingId = null }) => {
+const ModalForm = ({ show, onClose, addTask, updateTask, mode = 'add', initialText = '', initialCategory = 'Lazer', initialDescription = '', editingId = null, error = null }) => {
   const [text, setText] = useState(initialText);
   const [category, setCategory] = useState(initialCategory);
   const [description, setDescription] = useState(initialDescription); // Novo estado para a descrição
@@ -39,6 +39,12 @@ const ModalForm = ({ show, onClose, addTask, updateTask, mode = 'add', initialTe
           </div>
           <form onSubmit={handleSubmit}>
             <div className='modal-body'>
+              {/* Exibe o erro se existir */}
+              {error && (
+                <div className="alert alert-danger" role="alert">
+                  {error}
+                </div>
+              )}
               <input
                 type="text"
                 placeholder='Digite a tarefa'

@@ -18,6 +18,7 @@ export default function TodosPage() {
   const [tasks, setTasks] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null); // Novo estado para a tarefa em edição
+  const [error, setError] = useState(null); // Novo estado para exibir erros
 
   // Carregar tarefas do backend (Server Action)
   useEffect(() => {
@@ -42,10 +43,11 @@ export default function TodosPage() {
       const newTask = await addTodo(formData);
       if (newTask) {
         setTasks((prevTasks) => [...prevTasks, newTask]);
-        setShowModal(false);
+        handleCloseModal();
       }
     } catch (error) {
       console.error('Erro ao adicionar tarefa:', error.message);
+      setError(error.message); // Captura o erro e o armazena no estado
     }
   };
 
@@ -90,6 +92,7 @@ export default function TodosPage() {
   const handleEditTask = (taskToEdit) => {
     setEditingTask(taskToEdit); // Define a tarefa a ser editada
     setShowModal(true); // Abre o modal
+    setError(null); // Limpa o erro ao abrir o modal
   };
 
   // Nova função para lidar com a atualização
@@ -108,17 +111,18 @@ export default function TodosPage() {
             task.id === updatedTask.id ? updatedTask : task
           )
         );
-        setShowModal(false); // Fecha o modal
-        setEditingTask(null); // Limpa o estado da tarefa em edição
+        handleCloseModal();
       }
     } catch (error) {
       console.error('Erro ao atualizar tarefa:', error.message);
+      setError(error.message); // Captura o erro e o armazena no estado
     }
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingTask(null); // Limpa o estado da tarefa em edição ao fechar
+    setError(null); // Limpa o erro ao fechar o modal
   };
   
   return (
@@ -130,6 +134,7 @@ export default function TodosPage() {
           <button className="btn btn-add-task" onClick={() => {
             setEditingTask(null); // Garante que é modo de adição
             setShowModal(true);
+            setError(null); // Limpa o erro ao abrir o modal de adição
           }}>
             Adicionar Tarefa
           </button>
@@ -161,6 +166,7 @@ export default function TodosPage() {
           initialCategory={editingTask ? editingTask.category : 'Lazer'} // Passa a categoria inicial
           initialDescription={editingTask ? (editingTask.description || '') : ''} 
           editingId={editingTask ? editingTask.id : null} // Passa o ID da tarefa em edição
+          error={error} // Passa o erro para o modal
         />
       </main>
       <Footer />
