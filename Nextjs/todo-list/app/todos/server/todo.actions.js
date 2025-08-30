@@ -44,7 +44,7 @@ export async function getTodos() {
 }
 
 /**
- * Adiciona uma nova tarefa à tabela 'todos'.
+ * Adiciona uma nova tarefa ao banco de dados Supabase, verificando se o título já existe.
  * @param {FormData} formData - Contém 'text', 'category' e 'description'.
  * @returns {Promise<Object>} O objeto da nova tarefa inserida.
  */
@@ -56,6 +56,21 @@ export async function addTodo(formData) {
 
   if (!text || typeof text !== 'string' || text.trim().length === 0) {
     throw new Error('O texto da tarefa não pode estar vazio.');
+  }
+
+  // PASSO DE VALIDAÇÃO: Verifica se já existe uma tarefa com o mesmo título
+  const { data: existingTask, error: existingError } = await supabase
+    .from('todos')
+    .select('id')
+    .eq('text', text.trim());
+
+  if (existingError) {
+    console.error('Erro ao verificar tarefa duplicada:', existingError);
+    throw new Error('Falha ao verificar tarefa. Por favor, tente novamente.');
+  }
+
+  if (existingTask && existingTask.length > 0) {
+    throw new Error('Já existe uma tarefa com este título.');
   }
 
   const { data, error } = await supabase
