@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Spinner } from 'react-bootstrap';
 
 const Tasks = ({ tasks, onDelete, onToggle, onEdit }) => {
   const [showDescription, setShowDescription] = useState(false);
@@ -12,6 +13,8 @@ const Tasks = ({ tasks, onDelete, onToggle, onEdit }) => {
       setShowDescription(!showDescription);
     }
   };
+
+  const isGeneratingDescription = tasks.description === 'generating...';
 
   return (
     <div className='list-group-item d-flex align-items-center mb-2 p-3 border-bottom task-item hover-effect'>
@@ -29,8 +32,9 @@ const Tasks = ({ tasks, onDelete, onToggle, onEdit }) => {
       >
         <p className='mb-1 fw-bold'>{tasks.text}</p>
         <p className='badge rounded-pill text-bg-secondary mb-0'>{tasks.category}</p>
-        {/* Adiciona o sinalizador "ver mais" e "ver menos" */}
-        {tasks.description && (
+        {isGeneratingDescription ? (
+          <Spinner animation="border" size="sm" className="ms-2" />
+        ) : tasks.description && (
           <p className="ms-2 text-primary small mb-0 mt-1">
             {showDescription ? 'ver menos' : 'ver mais'}
           </p>

@@ -4,15 +4,32 @@
 import { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
+import '../App.css';
 
+// Importe a biblioteca do Supabase para o lado do cliente
+import { createClient } from '@supabase/supabase-js';
 
-// Importe todas as Server Actions, incluindo a nova 'updateTodo'
+// Importe todas as Server Actions
 import { addTodo, deleteTodo, toggleTodo, clearAllTodos, getTodos, updateTodo } from '../todos/server/todo.actions';
 
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import Tasks from '../todos/_components/Tasks';
 import ModalForm from '../todos/_components/ModalForm';
+import { Spinner } from 'react-bootstrap';
+
+// =========================================================================
+// Cliente Supabase para o lado do cliente (Realtime)
+// =========================================================================
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('As variáveis de ambiente NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY devem estar definidas.');
+}
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function TodosPage() {
   const [tasks, setTasks] = useState([]);
@@ -20,7 +37,7 @@ export default function TodosPage() {
   const [editingTask, setEditingTask] = useState(null); // Novo estado para a tarefa em edição
   const [error, setError] = useState(null); // Novo estado para exibir erros
 
-  // Carregar tarefas do backend (Server Action)
+  // Carregar tarefas iniciais e configurar a escuta em tempo real
   useEffect(() => {
     async function fetchInitialTasks() {
       try {
@@ -31,6 +48,27 @@ export default function TodosPage() {
       }
     }
     fetchInitialTasks();
+    
+    // =====================================================================
+    // Lógica de Realtime para ouvir por atualizações
+    // =====================================================================
+    
+    const channel = supabase
+      .channel('todos-updates')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'todos' }, (payload) => {
+        // Quando uma atualização acontece, atualiza o estado da tarefa
+        setTasks(prevTasks =>
+            prevTasks.map(task =>
+                task.id === payload.new.id ? payload.new : task
+            )
+        );
+      })
+      .subscribe();
+
+    // Limpeza da subscrição ao sair do componente
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleAddTask = async (text, category, description) => {
@@ -42,12 +80,17 @@ export default function TodosPage() {
 
       const newTask = await addTodo(formData);
       if (newTask) {
-        setTasks((prevTasks) => [...prevTasks, newTask]);
+        // Adiciona a tarefa ao estado imediatamente com um placeholder de carregamento
+        const tempTask = {
+            ...newTask,
+            description: 'generating...'
+        };
+        setTasks((prevTasks) => [tempTask, ...prevTasks]);
         handleCloseModal();
       }
     } catch (error) {
       console.error('Erro ao adicionar tarefa:', error.message);
-      setError(error.message); // Captura o erro e o armazena no estado
+      setError(error.message);
     }
   };
 
@@ -88,14 +131,12 @@ export default function TodosPage() {
     }
   };
 
-  // Nova função para lidar com a edição
   const handleEditTask = (taskToEdit) => {
-    setEditingTask(taskToEdit); // Define a tarefa a ser editada
-    setShowModal(true); // Abre o modal
-    setError(null); // Limpa o erro ao abrir o modal
+    setEditingTask(taskToEdit);
+    setShowModal(true);
+    setError(null);
   };
 
-  // Nova função para lidar com a atualização
   const handleUpdateTask = async (id, newText, newCategory, newDescription) => {
     try {
       const formData = new FormData();
@@ -115,14 +156,14 @@ export default function TodosPage() {
       }
     } catch (error) {
       console.error('Erro ao atualizar tarefa:', error.message);
-      setError(error.message); // Captura o erro e o armazena no estado
+      setError(error.message);
     }
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
-    setEditingTask(null); // Limpa o estado da tarefa em edição ao fechar
-    setError(null); // Limpa o erro ao fechar o modal
+    setEditingTask(null);
+    setError(null);
   };
   
   return (
@@ -132,9 +173,9 @@ export default function TodosPage() {
         <h1 className="text-center fw-bold mb-4">Minhas tarefas:</h1>
         <div className="d-flex justify-content-center mb-3">
           <button className="btn btn-add-task" onClick={() => {
-            setEditingTask(null); // Garante que é modo de adição
+            setEditingTask(null);
             setShowModal(true);
-            setError(null); // Limpa o erro ao abrir o modal de adição
+            setError(null);
           }}>
             Adicionar Tarefa
           </button>
@@ -150,7 +191,7 @@ export default function TodosPage() {
                 tasks={task}
                 onDelete={handleDeleteTask}
                 onToggle={handleToggleTask}
-                onEdit={handleEditTask} // Passa a nova função para o componente Tasks
+                onEdit={handleEditTask}
               />
             ))
           )}
@@ -161,12 +202,12 @@ export default function TodosPage() {
           onClose={handleCloseModal}
           addTask={handleAddTask}
           updateTask={handleUpdateTask}
-          mode={editingTask ? 'edit' : 'add'} // Define o modo do modal
-          initialText={editingTask ? editingTask.text : ''} // Passa o texto inicial para edição
-          initialCategory={editingTask ? editingTask.category : 'Lazer'} // Passa a categoria inicial
-          initialDescription={editingTask ? (editingTask.description || '') : ''} 
-          editingId={editingTask ? editingTask.id : null} // Passa o ID da tarefa em edição
-          error={error} // Passa o erro para o modal
+          mode={editingTask ? 'edit' : 'add'}
+          initialText={editingTask ? editingTask.text : ''}
+          initialCategory={editingTask ? editingTask.category : 'Lazer'}
+          initialDescription={editingTask ? (editingTask.description || '') : ''}
+          editingId={editingTask ? editingTask.id : null}
+          error={error}
         />
       </main>
       <Footer />
