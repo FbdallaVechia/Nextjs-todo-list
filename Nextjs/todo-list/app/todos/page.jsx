@@ -48,6 +48,11 @@ export default function TodosPage() {
         };
         setTasks((prevTasks) => [tempTask, ...prevTasks]);
         handleCloseModal();
+
+        // Adiciona o setTimeout para dar um refresh na página
+        setTimeout(() => {
+          window.location.reload();
+        }, 5000); // Recarrega a página após 5 segundos
       }
     } catch (error) {
       console.error('Erro ao adicionar tarefa:', error.message);
