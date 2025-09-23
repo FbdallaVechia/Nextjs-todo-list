@@ -5,33 +5,66 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import '../App.css';
 
-// Importe todas as Server Actions
+import { createClient } from '@supabase/supabase-js';
 import { addTodo, deleteTodo, toggleTodo, clearAllTodos, getTodos, updateTodo } from '../todos/server/todo.actions';
 
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import Tasks from '../todos/_components/Tasks';
 import ModalForm from '../todos/_components/ModalForm';
-import { Spinner } from 'react-bootstrap';
+import LoginButton from '../todos/_components/LoginButton';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function TodosPage() {
   const [tasks, setTasks] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [editingTask, setEditingTask] = useState(null); // Novo estado para a tarefa em edição
-  const [error, setError] = useState(null); // Novo estado para exibir erros
+  const [editingTask, setEditingTask] = useState(null);
+  const [error, setError] = useState(null);
+  const [user, setUser] = useState(null);
 
-  // Carrega as tarefas do banco de dados quando o componente é montado
+// useEffect para checar a sessão do usuário
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (session) {
+          setUser(session.user);
+        } else {
+          setUser(null);
+        }
+      }
+    );
+    return () => {
+      if (authListener) {
+        authListener.subscription.unsubscribe();
+      }
+    };
+  }, []);
+
+  // useEffect para carregar as tarefas, só quando o usuário muda
   useEffect(() => {
     async function fetchInitialTasks() {
-      try {
-        const fetchedTasks = await getTodos();
-        setTasks(fetchedTasks);
-      } catch (error) {
-        console.error('Erro ao carregar tarefas iniciais:', error.message);
-      }
+        if (user) {
+            const fetchedTasks = await getTodos();
+            setTasks(fetchedTasks);
+        }
     }
     fetchInitialTasks();
-  }, []); // O array vazio garante que o fetch seja feito apenas uma vez
+  }, [user]);
+
+
+  // Nova função para lidar com o logout
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+        console.error('Erro ao sair:', error);
+    }
+    setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+  };
 
   const handleAddTask = async (text, category, description) => {
     try {
@@ -48,12 +81,11 @@ export default function TodosPage() {
         };
         setTasks((prevTasks) => [tempTask, ...prevTasks]);
         handleCloseModal();
-
-        // Adiciona o setTimeout para dar um refresh na página
-        setTimeout(() => {
+       setTimeout(() => {
           window.location.reload();
-        }, 5000); // Recarrega a página após 5 segundos
-      }
+        }, 2000); // Recarrega a página após 2 segundos
+      } 
+      
     } catch (error) {
       console.error('Erro ao adicionar tarefa:', error.message);
       setError(error.message);
@@ -131,20 +163,24 @@ export default function TodosPage() {
     setEditingTask(null);
     setError(null);
   };
-  
+
   return (
     <>
-      <Header onClear={handleClear} />
+      <Header onClear={handleClear} user={user} onLogout={handleLogout} />
       <main className="container mt-5 flex-grow-1 p-3">
         <h1 className="text-center fw-bold mb-4">Minhas tarefas:</h1>
         <div className="d-flex justify-content-center mb-3">
-          <button className="btn btn-add-task" onClick={() => {
-            setEditingTask(null);
-            setShowModal(true);
-            setError(null);
-          }}>
-            Adicionar Tarefa
-          </button>
+          {user ? (
+            <button className="btn btn-add-task" onClick={() => {
+              setEditingTask(null);
+              setShowModal(true);
+              setError(null);
+            }}>
+              Adicionar Tarefa
+            </button>
+          ) : (
+            <LoginButton />
+          )}
         </div>
 
         <div className="list-group w-100">

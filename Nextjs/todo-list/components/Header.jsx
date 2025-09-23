@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-const Header = ({ onClear }) => {
+const Header = ({ onClear, user, onLogout }) => {
   return (
     <header>
       <nav className="navbar navbar-expand-sm navbar-light bg-light border-bottom px-4">
@@ -11,7 +11,14 @@ const Header = ({ onClear }) => {
           <span className="fw-bold fs-5">To do List</span>
 
           <div className="d-flex align-items-center">
-            <button className="btn btn-secondary me-2" onClick={onClear}>Limpar</button>
+            {user ? ( // Renderiza o botão de sair se o usuário estiver logado
+              <button className="btn btn-secondary me-2" onClick={onLogout}>
+                Sair
+              </button>
+            ) : null}
+            <button className="btn btn-secondary me-2" onClick={onClear}>
+                Limpar
+            </button>
           </div>
         </div>
       </nav>
