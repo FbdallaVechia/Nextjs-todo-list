@@ -12,7 +12,7 @@ export default function LoginButton() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin + '/todos',
+        redirectTo: 'https://www.fabiodallavechia.com.br/todos',
       },
     });
 
