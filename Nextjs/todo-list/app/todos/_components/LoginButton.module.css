@@ -1,0 +1,29 @@
+.googleBtn {
+  /* Layout e Alinhamento */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px; /* Espaço entre o logo e o texto */
+
+  /* Aparência */
+  background-color: #1a202c; /* Cor de fundo escura */
+  color: #fff; /* Cor do texto */
+  border: none;
+  border-radius: 8px; /* Bordas arredondadas */
+  padding: 12px 24px;
+  
+  /* Tipografia */
+  font-size: 16px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-weight: 500;
+  
+  /* Interação */
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width: 100%; /* Opcional: faz o botão ocupar a largura do contêiner */
+  max-width: 320px; /* Opcional: define uma largura máxima */
+}
+
+.googleBtn:hover {
+  background-color: #2d3748; /* Um pouco mais claro no hover */
+}
