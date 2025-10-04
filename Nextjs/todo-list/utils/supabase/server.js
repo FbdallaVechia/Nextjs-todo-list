@@ -6,7 +6,7 @@ export function createSupabaseServerClient() {
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, // Use a chave anônima aqui também
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         get(name) {
@@ -21,7 +21,8 @@ export function createSupabaseServerClient() {
         },
         remove(name, options) {
           try {
-            cookieStore.set({ name, '', ...options })
+            // AQUI ESTÁ A CORREÇÃO
+            cookieStore.set({ name, value: '', ...options }) 
           } catch (error) {
             // Ação de servidor chamada em um componente de cliente
           }
