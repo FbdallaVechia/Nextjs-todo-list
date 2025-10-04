@@ -1,10 +1,9 @@
 'use server';
 
-// 1. Importa a nova função para criar o cliente do servidor
 import { createSupabaseServerClient } from '../../../utils/supabase/server';
 
 // =========================================================================
-// 2. Server Actions para Gerenciamento de Tarefas
+// Server Actions para Gerenciamento de Tarefas
 // =========================================================================
 
 /**
@@ -12,20 +11,12 @@ import { createSupabaseServerClient } from '../../../utils/supabase/server';
  * @returns {Promise<Array<Object>>} Um array de objetos de tarefa.
  */
 export async function getTodos() {
-  // Cria uma instância do cliente que age em nome do usuário
   const supabase = createSupabaseServerClient();
-
-  console.log('Server Action: Buscando todas as tarefas do Supabase...');
-  const { data, error } = await supabase
-    .from('todos')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    console.error('Erro ao buscar tarefas do Supabase:', error);
-    throw new Error('Falha ao buscar tarefas. Por favor, tente novamente.');
+  const { data, error } = await supabase.from('todos').select('*').order('created_at', { ascending: false });
+  if (error) { 
+    console.error('Erro ao buscar tarefas:', error);
+    throw new Error('Falha ao buscar tarefas.'); 
   }
-
   return data;
 }
 
@@ -37,15 +28,18 @@ export async function getTodos() {
 export async function addTodo(formData) {
   const supabase = createSupabaseServerClient();
 
-  // 1. Pega os dados do usuário da sessão atual.
-  const { data: { user } } = await supabase.auth.getUser();
+  // 1. Pega os dados da sessão de forma segura, renomeando 'data' para 'sessionData'
+  const { data: sessionData, error: authError } = await supabase.auth.getUser();
 
-  // 2. Se não houver usuário, a ação não pode continuar.
-  if (!user) {
-    throw new Error('Usuário não autenticado. Acesso negado.');
+  // 2. Verifica se houve erro ou se o usuário não foi encontrado
+  if (authError || !sessionData?.user) {
+    console.error('Erro de autenticação na Server Action:', authError);
+    throw new Error('Acesso negado: não foi possível verificar o usuário.');
   }
+  
+  // 3. Agora podemos usar o usuário com segurança a partir de 'sessionData'
+  const user = sessionData.user;
 
-  console.log('Server Action: Adicionando nova tarefa...');
   const text = formData.get('text');
   const category = formData.get('category') || 'Lazer';
   const description = formData.get('description') || '';
@@ -54,12 +48,11 @@ export async function addTodo(formData) {
     throw new Error('O texto da tarefa não pode estar vazio.');
   }
 
-  // CORREÇÃO 1: A verificação de duplicidade agora checa apenas as tarefas DO USUÁRIO ATUAL.
   const { data: existingTask, error: existingError } = await supabase
     .from('todos')
     .select('id')
     .eq('text', text.trim())
-    .eq('user_id', user.id); // <-- Esta parte foi adicionada
+    .eq('user_id', user.id); 
 
   if (existingError) {
     console.error('Erro ao verificar tarefa duplicada:', existingError);
@@ -70,7 +63,8 @@ export async function addTodo(formData) {
     throw new Error('Você já possui uma tarefa com este título.');
   }
 
-  const { data, error } = await supabase
+  // Renomeia o segundo 'data' para 'newTaskData' para evitar conflito
+  const { data: newTaskData, error } = await supabase
     .from('todos')
     .insert([
       { 
@@ -78,7 +72,7 @@ export async function addTodo(formData) {
         category: category.trim(), 
         description: description.trim(), 
         completed: false,
-        user_id: user.id // <-- CORREÇÃO 2 (A MAIS IMPORTANTE): Inserção explícita do ID do usuário
+        user_id: user.id 
       }
     ])
     .select();
@@ -88,9 +82,10 @@ export async function addTodo(formData) {
     throw new Error('Falha ao adicionar tarefa. Por favor, tente novamente.');
   }
 
-  console.log('Server Action: Tarefa adicionada no Supabase:', data[0]);
-  return data[0];
+  // Retorna o resultado a partir da nova variável 'newTaskData'
+  return newTaskData[0];
 }
+
 
 /**
  * Alterna o status 'completed' de uma tarefa do usuário logado.
@@ -99,29 +94,16 @@ export async function addTodo(formData) {
  */
 export async function toggleTodo(id) {
   const supabase = createSupabaseServerClient();
-
-  console.log(`Server Action: Alternando o status da tarefa ${id}...`);
-  const { data: currentTask, error: fetchError } = await supabase
-    .from('todos')
-    .select('completed')
-    .eq('id', id)
-    .single();
-
-  if (fetchError || !currentTask) {
-    throw new Error('Tarefa não encontrada para alternar o status.');
+  const { data: currentTask, error: fetchError } = await supabase.from('todos').select('completed').eq('id', id).single();
+  if (fetchError) { 
+    console.error('Erro ao buscar tarefa para alternar status:', fetchError);
+    throw new Error('Tarefa não encontrada.'); 
   }
-
-  const { data, error } = await supabase
-    .from('todos')
-    .update({ completed: !currentTask.completed })
-    .eq('id', id)
-    .select();
-
-  if (error) {
-    console.error('Erro ao alternar status da tarefa no Supabase:', error);
-    throw new Error('Falha ao alternar status da tarefa. Por favor, tente novamente.');
+  const { data, error } = await supabase.from('todos').update({ completed: !currentTask.completed }).eq('id', id).select();
+  if (error) { 
+    console.error('Erro ao alternar status da tarefa:', error);
+    throw new Error('Falha ao alternar status da tarefa.'); 
   }
-
   return data[0];
 }
 
@@ -132,18 +114,11 @@ export async function toggleTodo(id) {
  */
 export async function deleteTodo(id) {
   const supabase = createSupabaseServerClient();
-
-  console.log(`Server Action: Deletando tarefa ${id}...`);
-  const { error } = await supabase
-    .from('todos')
-    .delete()
-    .eq('id', id);
-
-  if (error) {
-    console.error('Erro ao deletar tarefa no Supabase:', error);
-    throw new Error('Falha ao deletar tarefa. Por favor, tente novamente.');
+  const { error } = await supabase.from('todos').delete().eq('id', id);
+  if (error) { 
+    console.error('Erro ao deletar tarefa:', error);
+    throw new Error('Falha ao deletar tarefa.'); 
   }
-
   return true;
 }
 
@@ -154,40 +129,25 @@ export async function deleteTodo(id) {
  */
 export async function updateTodo(formData) {
   const supabase = createSupabaseServerClient();
-
-  console.log(`Server Action: Atualizando tarefa ${formData.get('id')}...`);
   const id = formData.get('id');
   const text = formData.get('text');
   const category = formData.get('category');
   const description = formData.get('description');
-
-  if (!id || typeof id !== 'string' || !text || typeof text !== 'string' || text.trim().length === 0) {
-    throw new Error('ID ou texto da tarefa inválido.');
-  }
+  if (!id || !text) { throw new Error('ID ou texto da tarefa inválido.'); }
   
   const updates = { 
     text: text.trim(),
-    description: description.trim()
+    description: description ? description.trim() : ''
   };
-  if (typeof category === 'string' && category.trim().length > 0) {
-    updates.category = category.trim();
+  if (category) { 
+    updates.category = category.trim(); 
   }
-
-  const { data, error } = await supabase
-    .from('todos')
-    .update(updates)
-    .eq('id', id)
-    .select();
-
-  if (error) {
-    console.error('Erro ao atualizar tarefa no Supabase:', error);
-    throw new Error('Falha ao atualizar tarefa. Por favor, tente novamente.');
+  
+  const { data, error } = await supabase.from('todos').update(updates).eq('id', id).select();
+  if (error || !data || !data.length === 0) { 
+    console.error('Erro ao atualizar tarefa:', error);
+    throw new Error('Falha ao atualizar tarefa.'); 
   }
-
-  if (!data || data.length === 0) {
-    throw new Error('Tarefa não encontrada para atualização.');
-  }
-
   return data[0];
 }
 
@@ -197,19 +157,10 @@ export async function updateTodo(formData) {
  */
 export async function clearAllTodos() {
   const supabase = createSupabaseServerClient();
-
-  console.log('Server Action: Limpando todas as tarefas...');
-  // IMPORTANTE: A política de RLS para DELETE garante que isso só vai
-  // deletar as tarefas do usuário logado, mesmo sem um .eq() aqui.
-  const { error } = await supabase
-    .from('todos')
-    .delete()
-    .not('id', 'is.null');
-
-  if (error) {
-    console.error('Erro ao limpar todas as tarefas no Supabase:', error);
-    throw new Error('Falha ao limpar todas as tarefas. Por favor, tente novamente.');
+  const { error } = await supabase.from('todos').delete().not('id', 'is.null');
+  if (error) { 
+    console.error('Erro ao limpar todas as tarefas:', error);
+    throw new Error('Falha ao limpar todas as tarefas.'); 
   }
-
   return true;
 }
