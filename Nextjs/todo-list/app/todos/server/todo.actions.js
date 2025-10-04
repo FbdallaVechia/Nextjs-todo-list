@@ -37,6 +37,14 @@ export async function getTodos() {
 export async function addTodo(formData) {
   const supabase = createSupabaseServerClient();
 
+  // 1. Pega os dados do usuário da sessão atual.
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // 2. Se não houver usuário, a ação não pode continuar.
+  if (!user) {
+    throw new Error('Usuário não autenticado. Acesso negado.');
+  }
+
   console.log('Server Action: Adicionando nova tarefa...');
   const text = formData.get('text');
   const category = formData.get('category') || 'Lazer';
@@ -46,10 +54,12 @@ export async function addTodo(formData) {
     throw new Error('O texto da tarefa não pode estar vazio.');
   }
 
+  // CORREÇÃO 1: A verificação de duplicidade agora checa apenas as tarefas DO USUÁRIO ATUAL.
   const { data: existingTask, error: existingError } = await supabase
     .from('todos')
     .select('id')
-    .eq('text', text.trim());
+    .eq('text', text.trim())
+    .eq('user_id', user.id); // <-- Esta parte foi adicionada
 
   if (existingError) {
     console.error('Erro ao verificar tarefa duplicada:', existingError);
@@ -57,7 +67,7 @@ export async function addTodo(formData) {
   }
 
   if (existingTask && existingTask.length > 0) {
-    throw new Error('Já existe uma tarefa com este título.');
+    throw new Error('Você já possui uma tarefa com este título.');
   }
 
   const { data, error } = await supabase
@@ -67,7 +77,8 @@ export async function addTodo(formData) {
         text: text.trim(), 
         category: category.trim(), 
         description: description.trim(), 
-        completed: false 
+        completed: false,
+        user_id: user.id // <-- CORREÇÃO 2 (A MAIS IMPORTANTE): Inserção explícita do ID do usuário
       }
     ])
     .select();
