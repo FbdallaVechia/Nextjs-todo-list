@@ -1,34 +1,20 @@
-// app/todos/server/todo.actions.js
+'use server';
 
-'use server'; // Indica que este código deve ser executado apenas no lado do servidor.
-
-import { createClient } from '@supabase/supabase-js';
-
-// =========================================================================
-// 1. Configuração do Cliente Supabase
-// =========================================================================
-
-// As chaves são lidas de .env.local e estão disponíveis apenas no servidor.
-// Esta é a forma segura de conectar ao banco de dados.
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('As variáveis de ambiente SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY devem estar definidas.');
-}
-
-// Cria uma única instância do cliente Supabase para ser reutilizada.
-const supabase = createClient(supabaseUrl, supabaseKey);
+// 1. Importa a nova função para criar o cliente do servidor
+import { createSupabaseServerClient } from '../../../utils/supabase/server';
 
 // =========================================================================
 // 2. Server Actions para Gerenciamento de Tarefas
 // =========================================================================
 
 /**
- * Busca todas as tarefas do banco de dados.
+ * Busca as tarefas do usuário logado no banco de dados.
  * @returns {Promise<Array<Object>>} Um array de objetos de tarefa.
  */
 export async function getTodos() {
+  // Cria uma instância do cliente que age em nome do usuário
+  const supabase = createSupabaseServerClient();
+
   console.log('Server Action: Buscando todas as tarefas do Supabase...');
   const { data, error } = await supabase
     .from('todos')
@@ -44,11 +30,13 @@ export async function getTodos() {
 }
 
 /**
- * Adiciona uma nova tarefa ao banco de dados Supabase, verificando se o título já existe.
+ * Adiciona uma nova tarefa ao banco de dados Supabase para o usuário logado.
  * @param {FormData} formData - Contém 'text', 'category' e 'description'.
  * @returns {Promise<Object>} O objeto da nova tarefa inserida.
  */
 export async function addTodo(formData) {
+  const supabase = createSupabaseServerClient();
+
   console.log('Server Action: Adicionando nova tarefa...');
   const text = formData.get('text');
   const category = formData.get('category') || 'Lazer';
@@ -58,7 +46,6 @@ export async function addTodo(formData) {
     throw new Error('O texto da tarefa não pode estar vazio.');
   }
 
-  // PASSO DE VALIDAÇÃO: Verifica se já existe uma tarefa com o mesmo título
   const { data: existingTask, error: existingError } = await supabase
     .from('todos')
     .select('id')
@@ -83,7 +70,7 @@ export async function addTodo(formData) {
         completed: false 
       }
     ])
-    .select(); // Retorna o registro da nova tarefa, incluindo o ID
+    .select();
 
   if (error) {
     console.error('Erro ao adicionar tarefa no Supabase:', error);
@@ -95,11 +82,13 @@ export async function addTodo(formData) {
 }
 
 /**
- * Alterna o status 'completed' de uma tarefa.
+ * Alterna o status 'completed' de uma tarefa do usuário logado.
  * @param {string} id - O ID da tarefa.
  * @returns {Promise<Object>} A tarefa com o status atualizado.
  */
 export async function toggleTodo(id) {
+  const supabase = createSupabaseServerClient();
+
   console.log(`Server Action: Alternando o status da tarefa ${id}...`);
   const { data: currentTask, error: fetchError } = await supabase
     .from('todos')
@@ -126,11 +115,13 @@ export async function toggleTodo(id) {
 }
 
 /**
- * Deleta uma tarefa específica.
+ * Deleta uma tarefa específica do usuário logado.
  * @param {string} id - O ID da tarefa.
  * @returns {Promise<boolean>} Retorna `true` se a exclusão for bem-sucedida.
  */
 export async function deleteTodo(id) {
+  const supabase = createSupabaseServerClient();
+
   console.log(`Server Action: Deletando tarefa ${id}...`);
   const { error } = await supabase
     .from('todos')
@@ -146,11 +137,13 @@ export async function deleteTodo(id) {
 }
 
 /**
- * Atualiza os campos 'text', 'category' e 'description' de uma tarefa.
+ * Atualiza os campos de uma tarefa do usuário logado.
  * @param {FormData} formData - Contém 'id', 'text', 'category' e 'description'.
  * @returns {Promise<Object>} A tarefa com os campos atualizados.
  */
 export async function updateTodo(formData) {
+  const supabase = createSupabaseServerClient();
+
   console.log(`Server Action: Atualizando tarefa ${formData.get('id')}...`);
   const id = formData.get('id');
   const text = formData.get('text');
@@ -188,15 +181,19 @@ export async function updateTodo(formData) {
 }
 
 /**
- * Limpa todas as tarefas do banco de dados.
+ * Limpa todas as tarefas do usuário logado.
  * @returns {Promise<boolean>} Retorna `true` se a limpeza for bem-sucedida.
  */
 export async function clearAllTodos() {
+  const supabase = createSupabaseServerClient();
+
   console.log('Server Action: Limpando todas as tarefas...');
+  // IMPORTANTE: A política de RLS para DELETE garante que isso só vai
+  // deletar as tarefas do usuário logado, mesmo sem um .eq() aqui.
   const { error } = await supabase
     .from('todos')
     .delete()
-    .not('id', 'is.null'); // Método confiável para deletar todas as linhas
+    .not('id', 'is.null');
 
   if (error) {
     console.error('Erro ao limpar todas as tarefas no Supabase:', error);
