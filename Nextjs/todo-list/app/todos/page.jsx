@@ -5,7 +5,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import '../App.css';
 
-import { createClient } from '@supabase/supabase-js';
+// 1. Importa a nova função para criar o cliente do NAVEGADOR
+import { createSupabaseBrowserClient } from '../../utils/supabase/client';
 import { addTodo, deleteTodo, toggleTodo, clearAllTodos, getTodos, updateTodo } from '../todos/server/todo.actions';
 
 import Header from '../../components/Header';
@@ -14,9 +15,8 @@ import Tasks from '../todos/_components/Tasks';
 import ModalForm from '../todos/_components/ModalForm';
 import LoginButton from '../todos/_components/LoginButton';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// 2. Cria a instância do cliente uma única vez e a reutiliza
+const supabase = createSupabaseBrowserClient();
 
 export default function TodosPage() {
   const [tasks, setTasks] = useState([]);
